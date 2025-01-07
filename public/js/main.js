@@ -31,7 +31,7 @@ async function initializeAudio() {
 function connectWebSocket() {
   try {
     // Handle both Vite and non-Vite environments
-    const wsUrl = '10.42.0.1'; // Fallback to default
+    const wsUrl = '192.168.0.66'; // Fallback to default
     console.log(`Connecting to WebSocket server: ${wsUrl}`);
     wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
