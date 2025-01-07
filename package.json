@@ -9,7 +9,8 @@
     "build": "run-p build:*",
     "build:project": "vite build",
     "build:sw": "vite build -c vite.sw.config.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ws": "node server/index.js"
   },
   "devDependencies": {
     "del-cli": "^5.0.0",
