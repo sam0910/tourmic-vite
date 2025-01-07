@@ -11,6 +11,7 @@ let wsConnection = null;
 const MAX_RECONNECT_ATTEMPTS = 5;
 let reconnectAttempts = 0;
 let reconnectTimeout = null;
+let isManualDisconnect = false;
 
 async function initializeAudio() {
   try {
@@ -35,23 +36,28 @@ function connectWebSocket() {
     console.log(`Connecting to WebSocket server: ${wsUrl}`);
     wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
+    isManualDisconnect = false;
 
     wsConnection.onopen = () => {
       document.getElementById('status').className = 'status connected';
-      document.getElementById('status').textContent = 'Status: Connected';
-      document.getElementById('message').textContent = 'Listening for audio stream...';
+      document.getElementById('status').textContent = '상태: 연결 완료';
+      document.getElementById('message').textContent = '오디오를 재생중 입니다....';
       document.getElementById('error').style.display = 'none';
+      document.getElementById('disconnect').style.display = 'block';
       reconnectAttempts = 0;
     };
 
     wsConnection.onclose = () => {
       document.getElementById('status').className = 'status disconnected';
-      document.getElementById('status').textContent = 'Status: Disconnected';
-      reconnectWebSocket();
+      document.getElementById('status').textContent = '상태: 연결 끊김';
+      document.getElementById('disconnect').style.display = 'none';
+      if (!isManualDisconnect) {
+        reconnectWebSocket();
+      }
     };
 
     wsConnection.onerror = (error) => {
-      showError('WebSocket connection error. Attempting to reconnect...');
+      showError('연결 에러, 연결을 재시도 합니다...');
     };
 
     wsConnection.onmessage = async (event) => {
@@ -67,22 +73,37 @@ function connectWebSocket() {
         source.connect(audioContext.destination);
         source.start(0);
       } catch (error) {
-        showError(`Audio processing error: ${error.message}`);
+        showError(`오디오 프로세싱 에러: ${error.message}`);
       }
     };
   } catch (error) {
-    showError(`Failed to connect to WebSocket server: ${error.message}`);
+    showError(`연결 에러 : ${error.message}`);
   }
+}
+
+function disconnectWebSocket() {
+  if (wsConnection) {
+    isManualDisconnect = true;
+    wsConnection.close();
+    wsConnection = null;
+  }
+  document.getElementById('disconnect').style.display = 'none';
+  document.getElementById('initAudio').style.display = 'block';
+  document.getElementById('message').textContent = '오디오 연결 버튼을 눌러서 연결하세요';
 }
 
 function reconnectWebSocket() {
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    showError('Maximum reconnection attempts reached. Please refresh the page.');
+    showError('재연결 시도 회수 초과. 3초 후 페이지를 새로고침 합니다....');
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000);
     return;
   }
 
   reconnectAttempts++;
-  console.log(`Reconnecting... Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+  console.log(`재연결중... 시도 ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+  showError(`재연결중... 시도 ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
 
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
@@ -100,4 +121,5 @@ function showError(message) {
 // Initialize event listeners when DOM is loaded
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('initAudio').addEventListener('click', initializeAudio);
+  document.getElementById('disconnect').addEventListener('click', disconnectWebSocket);
 });
