@@ -119,8 +119,8 @@
 
       // Initialize WebSocket connection
       function initWebSocket() {
-        const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
-        const ws = new WebSocket(`ws://${wsUrl}`);
+        const wsUrl = '192.168.0.66';
+        const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
         wsConnection = ws;
@@ -194,7 +194,7 @@
           const constraints = {
             audio: {
               channelCount: 1,
-              sampleRate: 44100,
+              sampleRate: 22050,
               sampleSize: 16,
             },
           };
@@ -202,9 +202,9 @@
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
           // Create Audio Context to handle raw PCM
-          const audioContext = new AudioContext();
+          const audioContext = new AudioContext({ sampleRate: 22050 });
           const source = audioContext.createMediaStreamSource(stream);
-          const processor = audioContext.createScriptProcessor(4096, 1, 1);
+          const processor = audioContext.createScriptProcessor(2048, 1, 1);
 
           source.connect(processor);
           processor.connect(audioContext.destination);

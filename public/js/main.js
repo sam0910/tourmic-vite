@@ -59,7 +59,7 @@ function connectWebSocket() {
 
       try {
         const floatArray = new Float32Array(event.data);
-        const buffer = audioContext.createBuffer(1, floatArray.length, 44100);
+        const buffer = audioContext.createBuffer(1, floatArray.length, 22050);
         buffer.copyToChannel(floatArray, 0);
 
         const source = audioContext.createBufferSource();
