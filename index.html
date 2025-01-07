@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/images/icons/logo-192.png" />
+    <title>Audio Receiver PWA</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+      .container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem;
+      }
+      .button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .button:hover {
+        background: #2563eb;
+      }
+      .status {
+        font-size: 0.875rem;
+      }
+      .status.connected {
+        color: #16a34a;
+      }
+      .status.disconnected {
+        color: #ca8a04;
+      }
+      .error {
+        color: #dc2626;
+        font-size: 0.875rem;
+      }
+    </style>
+    <script type="module" src="/js/main.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Audio Receiver</h1>
+      <button id="initAudio" class="button">Initialize Audio</button>
+      <div id="status" class="status disconnected">Status: Disconnected</div>
+      <div id="error" class="error" style="display: none"></div>
+      <div id="message" class="status">Click Initialize Audio to start</div>
+    </div>
+  </body>
+</html>
