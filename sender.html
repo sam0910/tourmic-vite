@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Sender</title>
+    <style>
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+
+      button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        border: none;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button.record {
+        background-color: #3b82f6;
+      }
+
+      button.record:hover {
+        background-color: #2563eb;
+      }
+
+      button.stop {
+        background-color: #ef4444;
+      }
+
+      button.stop:hover {
+        background-color: #dc2626;
+      }
+
+      button.permission {
+        background-color: #eab308;
+        font-size: 0.875rem;
+      }
+
+      button.permission:hover {
+        background-color: #ca8a04;
+      }
+
+      .error {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+      }
+
+      .status {
+        font-size: 0.875rem;
+        color: #4b5563;
+      }
+
+      .permission-status {
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+      }
+
+      .permission-status.granted {
+        color: #16a34a;
+      }
+
+      .permission-status.denied {
+        color: #ca8a04;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="index.html" style="text-decoration: none; margin-bottom: 1rem">
+      <button style="background-color: #6b7280">Back to Home</button>
+    </a>
+    <h1>Audio Sender</h1>
+    <button id="recordButton" class="record">Start Recording</button>
+    <div id="error" class="error" style="display: none"></div>
+    <div id="permissionStatus" class="permission-status" style="display: none"></div>
+    <button id="permissionButton" class="permission" style="display: none">Request Microphone Permission</button>
+    <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
+
+    <script>
+      // Register service worker for offline support
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            console.log('ServiceWorker registration successful with scope:', registration.scope);
+          } catch (error) {
+            console.error('ServiceWorker registration failed:', error);
+          }
+        });
+      }
+
+      let isRecording = false;
+      let wsConnection = null;
+      let mediaRecorderRef = null;
+      let permissionStatus = 'prompt';
+
+      // Check for insecure origin
+      if (window.location.protocol === 'http:') {
+        console.log('Running on HTTP - attempting to enable insecure origins flag');
+        console.log('Please enable "Insecure origins treated as secure" in chrome://flags');
+      }
+
+      // Initialize WebSocket connection
+      function initWebSocket() {
+        const ws = new WebSocket('ws://192.168.0.66:8080');
+        ws.binaryType = 'arraybuffer';
+        wsConnection = ws;
+
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+          setTimeout(initWebSocket, 1000); // Attempt to reconnect
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          showError('WebSocket connection error');
+        };
+      }
+
+      // Initialize WebSocket
+      initWebSocket();
+
+      // Check microphone permissions
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions
+          .query({ name: 'microphone' })
+          .then((status) => {
+            console.log('Microphone permission status:', status.state);
+            updatePermissionStatus(status.state);
+            status.onchange = () => {
+              console.log('Permission status changed:', status.state);
+              updatePermissionStatus(status.state);
+            };
+          })
+          .catch((err) => {
+            console.error('Error checking permission:', err);
+          });
+      }
+
+      function updatePermissionStatus(status) {
+        permissionStatus = status;
+        const statusElement = document.getElementById('permissionStatus');
+        const permissionButton = document.getElementById('permissionButton');
+
+        statusElement.style.display = status !== 'prompt' ? 'block' : 'none';
+        statusElement.textContent = `Microphone permission: ${status}`;
+        statusElement.className = `permission-status ${status === 'granted' ? 'granted' : 'denied'}`;
+
+        permissionButton.style.display = status === 'denied' ? 'block' : 'none';
+      }
+
+      async function requestPermission() {
+        try {
+          const result = await navigator.permissions.query({ name: 'microphone' });
+          if (result.state === 'denied') {
+            showError('Microphone permission was denied. Please enable it in your browser settings.');
+          }
+        } catch (error) {
+          console.error('Permission query failed:', error);
+        }
+      }
+
+      function showError(message) {
+        const errorElement = document.getElementById('error');
+        errorElement.textContent = `Error: ${message}`;
+        errorElement.style.display = 'block';
+      }
+
+      async function startRecording() {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('MediaDevices API not supported. For HTTP, please enable "Insecure origins treated as secure" in chrome://flags');
+          }
+
+          const constraints = {
+            audio: {
+              channelCount: 1,
+              sampleRate: 44100,
+              sampleSize: 16,
+            },
+          };
+
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+          // Create Audio Context to handle raw PCM
+          const audioContext = new AudioContext();
+          const source = audioContext.createMediaStreamSource(stream);
+          const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+
+          processor.onaudioprocess = (e) => {
+            if (wsConnection?.readyState === WebSocket.OPEN) {
+              const inputData = e.inputBuffer.getChannelData(0);
+              wsConnection.send(inputData.buffer);
+            }
+          };
+
+          mediaRecorderRef = {
+            stop: () => {
+              processor.disconnect();
+              source.disconnect();
+              audioContext.close();
+              stream.getTracks().forEach((track) => track.stop());
+            },
+          };
+
+          isRecording = true;
+          updateUI();
+          document.getElementById('error').style.display = 'none';
+        } catch (error) {
+          const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : 'Microphone access denied. For HTTP, enable "Insecure origins treated as secure" in chrome://flags';
+          console.error('Error accessing microphone:', errorMessage);
+          showError(errorMessage);
+        }
+      }
+
+      function stopRecording() {
+        if (mediaRecorderRef) {
+          mediaRecorderRef.stop();
+          isRecording = false;
+          updateUI();
+        }
+      }
+
+      function updateUI() {
+        const recordButton = document.getElementById('recordButton');
+        const recordingStatus = document.getElementById('recordingStatus');
+
+        if (isRecording) {
+          recordButton.textContent = 'Stop Recording';
+          recordButton.className = 'stop';
+          recordingStatus.style.display = 'block';
+        } else {
+          recordButton.textContent = 'Start Recording';
+          recordButton.className = 'record';
+          recordingStatus.style.display = 'none';
+        }
+      }
+
+      // Event Listeners
+      document.getElementById('recordButton').addEventListener('click', () => {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      });
+
+      document.getElementById('permissionButton').addEventListener('click', requestPermission);
+    </script>
+  </body>
+</html>

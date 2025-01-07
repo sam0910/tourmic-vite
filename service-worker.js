@@ -1,7 +1,7 @@
 const CACHE_NAME = 'pwa-workshop-v1';
 const OFFLINE_URL = 'offline.html';
 
-const ASSETS_TO_CACHE = ['/', '/index.html', '/offline.html', '/css/style.css', '/css/preview.css', '/js/main.js', '/js/preview.js', '/manifest.json', '/images/logo.svg', '/images/maskable.svg', '/images/paper.svg', '/images/mode_night_gm_grey_24dp.svg', '/images/wb_sunny_gm_grey_24dp.svg', '/images/icons/logo-48.png', '/images/icons/logo-72.png', '/images/icons/logo-96.png', '/images/icons/logo-128.png', '/images/icons/logo-192.png', '/images/icons/logo-384.png', '/images/icons/logo-512.png', '/images/icons/maskable-1024.png'];
+const ASSETS_TO_CACHE = ['/', '/index.html', '/sender.html', '/offline.html', '/css/style.css', '/css/preview.css', '/js/main.js', '/js/preview.js', '/manifest.json', '/images/logo.svg', '/images/maskable.svg', '/images/paper.svg', '/images/mode_night_gm_grey_24dp.svg', '/images/wb_sunny_gm_grey_24dp.svg', '/images/icons/logo-48.png', '/images/icons/logo-72.png', '/images/icons/logo-96.png', '/images/icons/logo-128.png', '/images/icons/logo-192.png', '/images/icons/logo-384.png', '/images/icons/logo-512.png', '/images/icons/maskable-1024.png'];
 
 // Install event - cache assets
 self.addEventListener('install', (event) => {
