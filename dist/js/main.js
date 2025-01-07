@@ -30,7 +30,9 @@ async function initializeAudio() {
 
 function connectWebSocket() {
   try {
-    wsConnection = new WebSocket(`ws://192.168.0.66:8080`);
+    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
+    console.log(`Connecting to WebSocket server`, wsUrl);
+    wsConnection = new WebSocket(`ws://${wsUrl}`);
     wsConnection.binaryType = 'arraybuffer';
 
     wsConnection.onopen = () => {

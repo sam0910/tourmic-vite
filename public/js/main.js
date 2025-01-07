@@ -30,7 +30,10 @@ async function initializeAudio() {
 
 function connectWebSocket() {
   try {
-    wsConnection = new WebSocket(`ws://192.168.0.66:8080`);
+    // Handle both Vite and non-Vite environments
+    const wsUrl = '10.42.0.1'; // Fallback to default
+    console.log(`Connecting to WebSocket server: ${wsUrl}`);
+    wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
 
     wsConnection.onopen = () => {
@@ -68,7 +71,7 @@ function connectWebSocket() {
       }
     };
   } catch (error) {
-    showError('Failed to connect to WebSocket server');
+    showError(`Failed to connect to WebSocket server: ${error.message}`);
   }
 }
 

@@ -119,7 +119,9 @@
 
       // Initialize WebSocket connection
       function initWebSocket() {
-        const ws = new WebSocket('ws://192.168.0.66:8080');
+        const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
+        const ws = new WebSocket(`ws://${wsUrl}`);
+        console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
         wsConnection = ws;
 
