@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "vite",
+    "start": "vite --host",
     "dev": "vite",
     "prebuild": "del-cli dist",
     "build": "run-p build:*",
