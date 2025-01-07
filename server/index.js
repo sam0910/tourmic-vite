@@ -47,7 +47,7 @@ wss.on('connection', (ws, req) => {
       return;
     }
     // Forward the raw PCM data directly
-    // console.log("Broadcasting PCM chunk:", data.byteLength, "bytes");
+    console.log('Broadcasting PCM chunk:', data.byteLength, 'bytes');
     broadcastAudio(data, ws);
   });
 
