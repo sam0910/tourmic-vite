@@ -6,7 +6,7 @@
     "start": "vite --host",
     "dev": "vite --host",
     "prebuild": "del-cli dist",
-    "build": "run-p build:*",
+    "build": "run-p build:* && npm run copy",
     "build:project": "vite build",
     "build:sw": "vite build -c vite.sw.config.js",
     "preview": "vite preview",
