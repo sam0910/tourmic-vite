@@ -9,7 +9,12 @@
     <link rel="apple-touch-icon" href="/images/icons/logo-192.png" />
     <title>Audio Receiver PWA</title>
     <link rel="stylesheet" href="/css/style.css" />
+
     <style>
+      html,
+      body {
+        font-family: 'Roboto', sans-serif;
+      }
       .container {
         min-height: 100vh;
         display: flex;
@@ -17,16 +22,17 @@
         align-items: center;
         justify-content: center;
         gap: 1rem;
-        padding: 1rem;
+        padding: 2rem 1rem; /* increased padding */
       }
       .button {
-        padding: 0.75rem 1.5rem;
+        padding: 1.5rem 3rem; /* Doubled from 0.75rem 1.5rem */
         border-radius: 9999px;
         background: #3b82f6;
         color: white;
         border: none;
         cursor: pointer;
         transition: background 0.3s;
+        font-size: 1.25rem; /* Added larger font size */
       }
       .button:hover {
         background: #2563eb;
@@ -51,6 +57,7 @@
         background: #b91c1c;
       }
       .link-sender {
+        margin-top: 2rem; /* Added margin to separate from other elements */
         font-size: 0.75rem;
         color: #6b7280;
         text-decoration: underline;
@@ -61,12 +68,16 @@
         color: #374151;
         background: none;
       }
+      h1 {
+        text-align: center;
+        width: 100%;
+      }
     </style>
     <script type="module" src="/js/main.js"></script>
   </head>
   <body>
     <div class="container">
-      <h1>Audio Receiver</h1>
+      <h1>TOUR SPEAKER</h1>
       <button id="initAudio" class="button">오디오 연결</button>
       <button id="disconnect" class="button disconnect" style="display: none">Disconnect</button>
 

@@ -5,33 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Audio Sender</title>
     <style>
+      html,
       body {
+        font-family: 'Roboto', sans-serif;
+      }
+      .container {
         min-height: 100vh;
-        margin: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-family: system-ui, -apple-system, sans-serif;
         gap: 1rem;
         padding: 1rem;
       }
-
       h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
+        text-align: center;
+        width: 100%;
       }
-
       button {
-        padding: 0.75rem 1.5rem;
+        padding: 1.5rem 3rem;
         border-radius: 9999px;
         border: none;
         color: white;
         cursor: pointer;
         transition: background-color 0.2s;
+        font-size: 1.25rem;
       }
-
       button.record {
         background-color: #3b82f6;
       }
@@ -57,6 +56,12 @@
         background-color: #ca8a04;
       }
 
+      #recordButton {
+        padding: 2rem 4rem; /* Even larger than other buttons */
+        font-size: 1.5rem; /* Larger font */
+        font-weight: bold; /* Make text bolder */
+      }
+
       .error {
         color: #dc2626;
         font-size: 0.875rem;
@@ -80,19 +85,30 @@
       .permission-status.denied {
         color: #ca8a04;
       }
+      .link-sender {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-decoration: underline;
+        background: none;
+        padding: 0.25rem;
+        margin-top: auto;
+      }
+      .link-sender:hover {
+        color: #374151;
+        background: none;
+      }
     </style>
   </head>
   <body>
-    <a href="index.html" style="text-decoration: none; margin-bottom: 1rem">
-      <button style="background-color: #6b7280">Back to Home</button>
-    </a>
-    <h1>Audio Sender</h1>
-    <button id="recordButton" class="record">Start Recording</button>
-    <div id="error" class="error" style="display: none"></div>
-    <div id="permissionStatus" class="permission-status" style="display: none"></div>
-    <button id="permissionButton" class="permission" style="display: none">Request Microphone Permission</button>
-    <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
-
+    <div class="container">
+      <h1>TOUR MIC</h1>
+      <button id="recordButton" class="record">ON-AIR</button>
+      <div id="error" class="error" style="display: none"></div>
+      <div id="permissionStatus" class="permission-status" style="display: none"></div>
+      <button id="permissionButton" class="permission" style="display: none">마이크 권한</button>
+      <a href="/index.html" class="link-sender">리시버 페이지로</a>
+      <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
+    </div>
     <script>
       // Register service worker for offline support
       if ('serviceWorker' in navigator) {
@@ -162,8 +178,8 @@
         const permissionButton = document.getElementById('permissionButton');
 
         statusElement.style.display = status !== 'prompt' ? 'block' : 'none';
-        statusElement.textContent = `Microphone permission: ${status}`;
-        statusElement.className = `permission-status ${status === 'granted' ? 'granted' : 'denied'}`;
+        statusElement.textContent = `마이크 사용권한: ${status}`;
+        statusElement.className = `permission-status ${status === 'granted' ? 'granted' : 'deny'}`;
 
         permissionButton.style.display = status === 'denied' ? 'block' : 'none';
       }
@@ -172,10 +188,10 @@
         try {
           const result = await navigator.permissions.query({ name: 'microphone' });
           if (result.state === 'denied') {
-            showError('Microphone permission was denied. Please enable it in your browser settings.');
+            showError('마이크권한 획득 실패');
           }
         } catch (error) {
-          console.error('Permission query failed:', error);
+          console.error('권한요청 쿼리 실패:', error);
         }
       }
 
@@ -188,7 +204,7 @@
       async function startRecording() {
         try {
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('MediaDevices API not supported. For HTTP, please enable "Insecure origins treated as secure" in chrome://flags');
+            throw new Error('MediaDevices API not supported. "Insecure origins treated as secure" in chrome://flags');
           }
 
           const constraints = {
@@ -229,7 +245,7 @@
           updateUI();
           document.getElementById('error').style.display = 'none';
         } catch (error) {
-          const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : 'Microphone access denied. For HTTP, enable "Insecure origins treated as secure" in chrome://flags';
+          const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : '마이크 권한 거절. Check "Insecure origins treated as secure" in chrome://flags';
           console.error('Error accessing microphone:', errorMessage);
           showError(errorMessage);
         }
@@ -248,11 +264,11 @@
         const recordingStatus = document.getElementById('recordingStatus');
 
         if (isRecording) {
-          recordButton.textContent = 'Stop Recording';
+          recordButton.textContent = 'STOP';
           recordButton.className = 'stop';
           recordingStatus.style.display = 'block';
         } else {
-          recordButton.textContent = 'Start Recording';
+          recordButton.textContent = 'ON-AIR';
           recordButton.className = 'record';
           recordingStatus.style.display = 'none';
         }
