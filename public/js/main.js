@@ -81,7 +81,7 @@ function connectWebSocket() {
     }
 
     // Handle both Vite and non-Vite environments
-    const wsUrl = '192.168.0.66'; // Fallback to default
+    const wsUrl = 'tourmic.local'; //'192.168.0.66'; // Fallback to default
     console.log(`Connecting to WebSocket server: ${wsUrl}`);
     wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
