@@ -11,7 +11,8 @@
     "build:sw": "vite build -c vite.sw.config.js",
     "preview": "vite preview",
     "ws": "node server/index.js",
-    "all": "concurrently \"node ./server/index.js\" \"vite --host\""
+    "all": "concurrently \"node ./server/index.js\" \"vite --host\"",
+    "copy": "bash ./copy-dist.sh"
   },
   "devDependencies": {
     "del-cli": "^5.0.0",
