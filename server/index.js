@@ -18,6 +18,7 @@ Bun.serve({
   },
   websocket: {
     open(ws) {
+      ws.binaryType = 'arraybuffer';
       clients.add(ws);
       console.log('Client connected');
       console.log(`Total connected clients: ${clients.size}`);

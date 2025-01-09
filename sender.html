@@ -135,7 +135,7 @@
 
       // Initialize WebSocket connection
       function initWebSocket() {
-        const wsUrl = '192.168.0.20';
+        const wsUrl = '192.168.0.119';
         const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';

@@ -56,6 +56,12 @@
         background-color: #ca8a04;
       }
 
+      #recordButton {
+        padding: 2rem 4rem; /* Even larger than other buttons */
+        font-size: 1.5rem; /* Larger font */
+        font-weight: bold; /* Make text bolder */
+      }
+
       .error {
         color: #dc2626;
         font-size: 0.875rem;
@@ -129,7 +135,7 @@
 
       // Initialize WebSocket connection
       function initWebSocket() {
-        const wsUrl = '192.168.0.66';
+        const wsUrl = '192.168.0.119';
         const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
