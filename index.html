@@ -14,6 +14,8 @@
       html,
       body {
         font-family: 'Roboto', sans-serif;
+        background-color: #000000;
+        color: #ffffff;
       }
       .container {
         min-height: 100vh;
@@ -22,55 +24,57 @@
         align-items: center;
         justify-content: center;
         gap: 1rem;
-        padding: 2rem 1rem; /* increased padding */
+        padding: 2rem 1rem;
       }
       .button {
-        padding: 1.5rem 3rem; /* Doubled from 0.75rem 1.5rem */
+        padding: 1.5rem 3rem;
         border-radius: 9999px;
-        background: #3b82f6;
+        background: #4f46e5;
         color: white;
         border: none;
         cursor: pointer;
         transition: background 0.3s;
-        font-size: 1.25rem; /* Added larger font size */
+        font-size: 1.25rem;
       }
       .button:hover {
-        background: #2563eb;
+        background: #6366f1;
       }
       .status {
         font-size: 0.875rem;
+        color: #9ca3af;
       }
       .status.connected {
-        color: #16a34a;
+        color: #10b981;
       }
       .status.disconnected {
-        color: #ca8a04;
+        color: #f59e0b;
       }
       .error {
-        color: #dc2626;
+        color: #ef4444;
         font-size: 0.875rem;
       }
       .button.disconnect {
         background: #dc2626;
       }
       .button.disconnect:hover {
-        background: #b91c1c;
+        background: #ef4444;
       }
       .link-sender {
-        margin-top: 2rem; /* Added margin to separate from other elements */
+        margin-top: 2rem;
         font-size: 0.75rem;
-        color: #6b7280;
+        color: #9ca3af;
         text-decoration: underline;
         background: none;
         padding: 0.25rem;
       }
       .link-sender:hover {
-        color: #374151;
+        color: #f3f4f6;
         background: none;
       }
       h1 {
         text-align: center;
         width: 100%;
+        color: #ffffff;
       }
     </style>
     <script type="module" src="/js/main.js"></script>
