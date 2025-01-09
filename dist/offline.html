@@ -4,32 +4,90 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PWA Edit</title>
-    <style>
-      body {
-        background: #282c34;
-        box-sizing: border-box;
-        font-family: sans-serif;
-        font-size: 1.5rem;
-        margin: 0;
-      }
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/images/icons/logo-192.png" />
+    <title>Audio Receiver PWA</title>
+    
 
-      .offline {
-        align-items: center;
-        color: white;
+    <style>
+      html,
+      body {
+        font-family: 'Roboto', sans-serif;
+      }
+      .container {
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
+        align-items: center;
         justify-content: center;
-        margin: 0 auto;
-        max-width: 40ch;
-        min-height: 100vh;
+        gap: 1rem;
+        padding: 2rem 1rem; /* increased padding */
+      }
+      .button {
+        padding: 1.5rem 3rem; /* Doubled from 0.75rem 1.5rem */
+        border-radius: 9999px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+        font-size: 1.25rem; /* Added larger font size */
+      }
+      .button:hover {
+        background: #2563eb;
+      }
+      .status {
+        font-size: 0.875rem;
+      }
+      .status.connected {
+        color: #16a34a;
+      }
+      .status.disconnected {
+        color: #ca8a04;
+      }
+      .error {
+        color: #dc2626;
+        font-size: 0.875rem;
+      }
+      .button.disconnect {
+        background: #dc2626;
+      }
+      .button.disconnect:hover {
+        background: #b91c1c;
+      }
+      .link-sender {
+        margin-top: 2rem; /* Added margin to separate from other elements */
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-decoration: underline;
+        background: none;
+        padding: 0.25rem;
+      }
+      .link-sender:hover {
+        color: #374151;
+        background: none;
+      }
+      h1 {
+        text-align: center;
+        width: 100%;
       }
     </style>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" crossorigin src="/assets/modulepreload-polyfill.c7c6310f.js"></script>
+    <link rel="stylesheet" href="/assets/style.33fe61d7.css">
   </head>
   <body>
-    <div class="offline">
-      <h1>Offline</h1>
-      <p>The current page isn't available offline. Please try again when when you're back online.</p>
+    <div class="container">
+      <h1>TOUR SPEAKER</h1>
+      <button id="initAudio" class="button">오디오 연결</button>
+      <button id="disconnect" class="button disconnect" style="display: none">Disconnect</button>
+
+      <div id="status" class="status disconnected">상태: 연결 끊김</div>
+      <div id="error" class="error" style="display: none"></div>
+      <div id="message" class="status">오디오 연결 버튼을 눌러서 연결하세요</div>
+      <a href="/sender.html" class="link-sender">브로드 캐스팅 페이지</a>
+      <h6>offline version</h6>
     </div>
   </body>
 </html>

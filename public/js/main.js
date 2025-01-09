@@ -109,7 +109,7 @@ async function initializeAudio() {
 
     // Initialize media features
     await setupMediaSession();
-    await requestWakeLock();
+    // await requestWakeLock();
     await setupBackgroundFetch();
     document.getElementById('initAudio').style.display = 'none';
     document.getElementById('message').textContent = 'Attempting to connect...';

@@ -109,7 +109,7 @@ async function initializeAudio() {
 
     // Initialize media features
     await setupMediaSession();
-    await requestWakeLock();
+    // await requestWakeLock();
     await setupBackgroundFetch();
     document.getElementById('initAudio').style.display = 'none';
     document.getElementById('message').textContent = 'Attempting to connect...';
@@ -168,7 +168,7 @@ function connectWebSocket() {
     }
 
     // Handle both Vite and non-Vite environments
-    const wsUrl = '192.168.0.122'; // Fallback to default
+    const wsUrl = '192.168.0.119'; // Fallback to default
     console.log(`Connecting to WebSocket server: ${wsUrl}`);
     wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
@@ -228,6 +228,13 @@ function connectWebSocket() {
 
         // Process audio data
         const floatArray = new Float32Array(event.data);
+
+        // Check if the audio data is valid
+        if (floatArray.length === 0) {
+          console.warn('Received empty audio data');
+          return;
+        }
+
         const buffer = audioContext.createBuffer(1, floatArray.length, 22050);
         buffer.copyToChannel(floatArray, 0);
 

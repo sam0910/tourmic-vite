@@ -8,15 +8,18 @@
       html,
       body {
         font-family: 'Roboto', sans-serif;
+        background-color: #000000;
+        color: #ffffff;
       }
       .container {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 1rem;
-        padding: 1rem;
+        padding-top: 4rem;
+        padding: 4rem 1rem 1rem 1rem;
       }
       h1 {
         text-align: center;
@@ -32,28 +35,44 @@
         font-size: 1.25rem;
       }
       button.record {
-        background-color: #3b82f6;
+        background-color: #4f46e5;
       }
 
       button.record:hover {
-        background-color: #2563eb;
+        background-color: #6366f1;
       }
 
       button.stop {
-        background-color: #ef4444;
-      }
-
-      button.stop:hover {
         background-color: #dc2626;
       }
 
+      button.stop:hover {
+        background-color: #ef4444;
+      }
+
       button.permission {
-        background-color: #eab308;
+        background-color: #d97706;
         font-size: 0.875rem;
       }
 
       button.permission:hover {
-        background-color: #ca8a04;
+        background-color: #eab308;
+      }
+
+      button.music {
+        background-color: #059669;
+      }
+
+      button.music:hover {
+        background-color: #10b981;
+      }
+
+      button.music.playing {
+        background-color: #4f46e5;
+      }
+
+      button.music.playing:hover {
+        background-color: #6366f1;
       }
 
       #recordButton {
@@ -63,14 +82,14 @@
       }
 
       .error {
-        color: #dc2626;
+        color: #ef4444;
         font-size: 0.875rem;
         margin-bottom: 1rem;
       }
 
       .status {
-        font-size: 0.875rem;
-        color: #4b5563;
+        font-size: 1.275rem;
+        color: #9ca3af;
       }
 
       .permission-status {
@@ -79,33 +98,35 @@
       }
 
       .permission-status.granted {
-        color: #16a34a;
+        color: #10b981;
       }
 
       .permission-status.denied {
-        color: #ca8a04;
+        color: #f59e0b;
       }
       .link-sender {
         font-size: 0.75rem;
-        color: #6b7280;
+        color: #9ca3af;
         text-decoration: underline;
         background: none;
         padding: 0.25rem;
-        margin-top: auto;
+        margin-top: 1rem;
       }
       .link-sender:hover {
-        color: #374151;
+        color: #f3f4f6;
         background: none;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>TOUR MIC</h1>
-      <button id="recordButton" class="record">ON-AIR</button>
+      <h1>MR.LEE</h1>
+      <div id="connectionCount" class="status">연결 완료: 0</div>
+      <button id="recordButton" class="record">방송시작</button>
       <div id="error" class="error" style="display: none"></div>
       <div id="permissionStatus" class="permission-status" style="display: none"></div>
       <button id="permissionButton" class="permission" style="display: none">마이크 권한</button>
+      <button id="musicButton" class="music">샘플음악 재생</button>
       <a href="/index.html" class="link-sender">리시버 페이지로</a>
       <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
     </div>
@@ -117,6 +138,8 @@
       let permissionStatus = 'prompt';
       let wakeLock = null;
       let backgroundFetchId = null;
+      let audioPlayer = null;
+      let isPlaying = false;
 
       // Register service worker for offline support and background features
       if ('serviceWorker' in navigator) {
@@ -178,7 +201,7 @@
 
       // Initialize WebSocket connection with enhanced reconnection logic
       function initWebSocket() {
-        const wsUrl = '192.168.0.122';
+        const wsUrl = '192.168.0.119';
         const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
@@ -189,6 +212,19 @@
           if (isRecording) {
             // Re-initialize audio context if connection was lost while recording
             restartAudioContext();
+          }
+        };
+
+        ws.onmessage = (event) => {
+          if (typeof event.data === 'string') {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'count') {
+                document.getElementById('connectionCount').textContent = `연결 완료: ${data.count}`;
+              }
+            } catch (e) {
+              console.error('Error parsing WebSocket message:', e);
+            }
           }
         };
 
@@ -386,11 +422,94 @@
         if (isRecording) {
           stopRecording();
         } else {
+          // Stop music if it's playing before starting recording
+          if (isPlaying) {
+            if (audioContext) {
+              audioContext.close();
+              audioContext = null;
+            }
+            isPlaying = false;
+            const musicButton = document.getElementById('musicButton');
+            musicButton.textContent = '샘플음악 재생';
+            musicButton.classList.remove('playing');
+          }
           startRecording();
         }
       });
 
       document.getElementById('permissionButton').addEventListener('click', requestPermission);
+
+      // Music Player Controls with WebSocket Streaming
+      document.getElementById('musicButton').addEventListener('click', async () => {
+        const musicButton = document.getElementById('musicButton');
+
+        if (isPlaying) {
+          if (audioContext) {
+            await audioContext.close();
+            audioContext = null;
+          }
+          isPlaying = false;
+          musicButton.textContent = '샘플음악 재생';
+          musicButton.classList.remove('playing');
+        } else {
+          try {
+            // Create new audio context
+            audioContext = new AudioContext({ sampleRate: 22050 });
+
+            // Fetch the audio file
+            const response = await fetch('/background.mp3');
+            const arrayBuffer = await response.arrayBuffer();
+
+            // Decode the audio data
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            // Create source and processor
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.loop = true; // Enable looping
+
+            const processor = audioContext.createScriptProcessor(2048, 1, 1);
+
+            // Connect nodes
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+
+            // Process and stream audio data
+            processor.onaudioprocess = (e) => {
+              if (wsConnection?.readyState === WebSocket.OPEN) {
+                const inputData = e.inputBuffer.getChannelData(0);
+                wsConnection.send(inputData.buffer);
+              }
+            };
+
+            // Start playback
+            source.start(0);
+            isPlaying = true;
+            musicButton.textContent = '음악 재생중지';
+            musicButton.classList.add('playing');
+
+            // Store source in a higher scope for stopping later
+            audioPlayer = source;
+
+            // Handle when audio needs to be stopped
+            source.onended = () => {
+              if (!source.loop) {
+                // Only cleanup if we manually stopped the loop
+                if (audioContext) {
+                  audioContext.close();
+                  audioContext = null;
+                }
+                isPlaying = false;
+                musicButton.textContent = '샘플음악 재생';
+                musicButton.classList.remove('playing');
+              }
+            };
+          } catch (error) {
+            console.error('Error streaming audio:', error);
+            showError('Failed to stream audio');
+          }
+        }
+      });
     </script>
   </body>
 </html>
