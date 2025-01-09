@@ -228,6 +228,13 @@ function connectWebSocket() {
 
         // Process audio data
         const floatArray = new Float32Array(event.data);
+
+        // Check if the audio data is valid
+        if (floatArray.length === 0) {
+          console.warn('Received empty audio data');
+          return;
+        }
+
         const buffer = audioContext.createBuffer(1, floatArray.length, 22050);
         buffer.copyToChannel(floatArray, 0);
 
