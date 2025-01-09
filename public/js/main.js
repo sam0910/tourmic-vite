@@ -14,7 +14,6 @@ let reconnectTimeout = null;
 let isManualDisconnect = false;
 let heartbeatInterval = null;
 let lastHeartbeat = null;
-let wakeLock = null;
 let audioFocusGained = true;
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -27,36 +26,6 @@ if ('serviceWorker' in navigator) {
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const CONNECTION_TIMEOUT = 35000; // 35 seconds
 const RECONNECT_DELAY = 2000; // 2 seconds
-
-async function requestWakeLock() {
-  try {
-    // Request both screen and system wake locks if available
-    const locks = [];
-    if ('wakeLock' in navigator) {
-      // Request screen wake lock
-      try {
-        const screenLock = await navigator.wakeLock.request('screen');
-        locks.push(screenLock);
-        console.log('Screen Wake Lock is active');
-      } catch (err) {
-        console.log(`Screen Wake Lock error: ${err.message}`);
-      }
-    }
-
-    wakeLock = locks[0] || null;
-
-    // Add wake lock release listener to reacquire
-    if (wakeLock) {
-      wakeLock.addEventListener('release', () => {
-        console.log('Wake Lock was released');
-        // Attempt to reacquire the wake lock
-        requestWakeLock().catch(console.error);
-      });
-    }
-  } catch (err) {
-    console.log(`Wake Lock error: ${err.message}`);
-  }
-}
 
 async function setupMediaSession() {
   if ('mediaSession' in navigator) {
@@ -109,7 +78,6 @@ async function initializeAudio() {
 
     // Initialize media features
     await setupMediaSession();
-    await requestWakeLock();
     await setupBackgroundFetch();
     document.getElementById('initAudio').style.display = 'none';
     document.getElementById('message').textContent = 'Attempting to connect...';
@@ -264,15 +232,6 @@ function disconnectWebSocket() {
     wsConnection.close();
     wsConnection = null;
 
-    // Release wake lock when disconnecting
-    if (wakeLock) {
-      wakeLock
-        .release()
-        .then(() => console.log('Wake Lock released'))
-        .catch((err) => console.log(`Wake Lock release error: ${err.message}`));
-      wakeLock = null;
-    }
-
     // Update media session state
     if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'paused';
@@ -325,18 +284,9 @@ document.addEventListener('visibilitychange', async () => {
     audioFocusGained = false;
     // Don't suspend audio context when hidden
     // This allows audio to continue playing in background
-
-    // Ensure wake lock is active
-    if (!wakeLock) {
-      await requestWakeLock();
-    }
   } else if (!document.hidden && audioContext && !audioFocusGained) {
     audioFocusGained = true;
     await audioContext.resume();
-    // Reacquire wake lock if needed
-    if (!wakeLock) {
-      await requestWakeLock();
-    }
   }
 });
 
