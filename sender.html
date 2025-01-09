@@ -201,7 +201,7 @@
 
       // Initialize WebSocket connection with enhanced reconnection logic
       function initWebSocket() {
-        const wsUrl = '192.168.0.122';
+        const wsUrl = '192.168.0.20';
         const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
@@ -466,6 +466,7 @@
             // Create source and processor
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
+            source.loop = true; // Enable looping
 
             const processor = audioContext.createScriptProcessor(2048, 1, 1);
 
@@ -487,15 +488,21 @@
             musicButton.textContent = '음악 재생중지';
             musicButton.classList.add('playing');
 
-            // Handle when audio finishes
+            // Store source in a higher scope for stopping later
+            audioPlayer = source;
+
+            // Handle when audio needs to be stopped
             source.onended = () => {
-              if (audioContext) {
-                audioContext.close();
-                audioContext = null;
+              if (!source.loop) {
+                // Only cleanup if we manually stopped the loop
+                if (audioContext) {
+                  audioContext.close();
+                  audioContext = null;
+                }
+                isPlaying = false;
+                musicButton.textContent = '샘플음악 재생';
+                musicButton.classList.remove('playing');
               }
-              isPlaying = false;
-              musicButton.textContent = '샘플음악 재생';
-              musicButton.classList.remove('playing');
             };
           } catch (error) {
             console.error('Error streaming audio:', error);

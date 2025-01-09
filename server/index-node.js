@@ -10,7 +10,7 @@ function getLocalIP() {
       }
     }
   }
-  return '127.0.0.1'; // Fallback to 192.168.0.122
+  return '127.0.0.1'; // Fallback to 192.168.0.20
 }
 
 const IP = getLocalIP();
