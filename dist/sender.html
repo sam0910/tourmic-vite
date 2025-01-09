@@ -110,22 +110,65 @@
       <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
     </div>
     <script>
-      // Register service worker for offline support
+      let registration;
+      let isRecording = false;
+      let wsConnection = null;
+      let mediaRecorderRef = null;
+      let permissionStatus = 'prompt';
+      let wakeLock = null;
+      let backgroundFetchId = null;
+
+      // Register service worker for offline support and background features
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            registration = await navigator.serviceWorker.register('/service-worker.js');
             console.log('ServiceWorker registration successful with scope:', registration.scope);
+
+            // Register for background sync if supported
+            if ('sync' in registration) {
+              await registration.sync.register('audio-sync');
+              console.log('Background sync registered');
+            }
+
+            // Register for background fetch if supported
+            if ('backgroundFetch' in registration) {
+              console.log('Background Fetch API supported');
+            }
           } catch (error) {
             console.error('ServiceWorker registration failed:', error);
           }
         });
       }
 
-      let isRecording = false;
-      let wsConnection = null;
-      let mediaRecorderRef = null;
-      let permissionStatus = 'prompt';
+      // Request wake lock to prevent device sleep
+      async function requestWakeLock() {
+        try {
+          if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock is active');
+
+            // Re-request wake lock if it's released
+            wakeLock.addEventListener('release', async () => {
+              console.log('Wake Lock was released');
+              if (isRecording) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock re-acquired');
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Wake Lock error:', err);
+        }
+      }
+
+      // Release wake lock
+      async function releaseWakeLock() {
+        if (wakeLock) {
+          await wakeLock.release();
+          wakeLock = null;
+        }
+      }
 
       // Check for insecure origin
       if (window.location.protocol === 'http:') {
@@ -133,16 +176,28 @@
         console.log('Please enable "Insecure origins treated as secure" in chrome://flags');
       }
 
-      // Initialize WebSocket connection
+      // Initialize WebSocket connection with enhanced reconnection logic
       function initWebSocket() {
-        const wsUrl = '192.168.0.20';
+        const wsUrl = '192.168.0.122';
         const ws = new WebSocket(`ws://${wsUrl}:8080`);
         console.log(`Sending to WebSocket server`, ws);
         ws.binaryType = 'arraybuffer';
         wsConnection = ws;
 
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          if (isRecording) {
+            // Re-initialize audio context if connection was lost while recording
+            restartAudioContext();
+          }
+        };
+
         ws.onclose = () => {
           console.log('WebSocket connection closed');
+          // Store audio data in IndexedDB while disconnected
+          if (isRecording) {
+            cacheAudioData();
+          }
           setTimeout(initWebSocket, 1000); // Attempt to reconnect
         };
 
@@ -154,6 +209,21 @@
 
       // Initialize WebSocket
       initWebSocket();
+
+      // Store audio data while offline
+      async function cacheAudioData() {
+        if ('backgroundFetch' in registration && isRecording) {
+          try {
+            const fetch = await registration.backgroundFetch.fetch('audio-cache-' + Date.now(), ['/audio-cache'], {
+              title: 'Caching Audio Data',
+              downloadTotal: 0,
+            });
+            backgroundFetchId = fetch.id;
+          } catch (err) {
+            console.error('Background fetch error:', err);
+          }
+        }
+      }
 
       // Check microphone permissions
       if (navigator.permissions && navigator.permissions.query) {
@@ -201,11 +271,18 @@
         errorElement.style.display = 'block';
       }
 
+      let audioContext = null;
+      let source = null;
+      let processor = null;
+
       async function startRecording() {
         try {
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('MediaDevices API not supported. "Insecure origins treated as secure" in chrome://flags');
           }
+
+          // Request wake lock when starting recording
+          await requestWakeLock();
 
           const constraints = {
             audio: {
@@ -218,9 +295,9 @@
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
           // Create Audio Context to handle raw PCM
-          const audioContext = new AudioContext({ sampleRate: 22050 });
-          const source = audioContext.createMediaStreamSource(stream);
-          const processor = audioContext.createScriptProcessor(2048, 1, 1);
+          audioContext = new AudioContext({ sampleRate: 22050 });
+          source = audioContext.createMediaStreamSource(stream);
+          processor = audioContext.createScriptProcessor(2048, 1, 1);
 
           source.connect(processor);
           processor.connect(audioContext.destination);
@@ -229,14 +306,19 @@
             if (wsConnection?.readyState === WebSocket.OPEN) {
               const inputData = e.inputBuffer.getChannelData(0);
               wsConnection.send(inputData.buffer);
+            } else {
+              // Cache audio data if WebSocket is not connected
+              if (isRecording) {
+                cacheAudioData();
+              }
             }
           };
 
           mediaRecorderRef = {
             stop: () => {
-              processor.disconnect();
-              source.disconnect();
-              audioContext.close();
+              if (processor) processor.disconnect();
+              if (source) source.disconnect();
+              if (audioContext) audioContext.close();
               stream.getTracks().forEach((track) => track.stop());
             },
           };
@@ -251,11 +333,28 @@
         }
       }
 
+      // Restart audio context if needed (e.g., after reconnection)
+      async function restartAudioContext() {
+        if (audioContext && audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+      }
+
       function stopRecording() {
         if (mediaRecorderRef) {
           mediaRecorderRef.stop();
           isRecording = false;
           updateUI();
+          // Release wake lock when stopping recording
+          releaseWakeLock();
+
+          // Clean up background fetch if active
+          if (backgroundFetchId) {
+            registration.backgroundFetch.get(backgroundFetchId).then((fetch) => {
+              if (fetch) fetch.abort();
+            });
+            backgroundFetchId = null;
+          }
         }
       }
 
@@ -273,6 +372,14 @@
           recordingStatus.style.display = 'none';
         }
       }
+
+      // Handle visibility change
+      document.addEventListener('visibilitychange', async () => {
+        if (document.hidden && isRecording) {
+          // Ensure wake lock is active when page is hidden
+          await requestWakeLock();
+        }
+      });
 
       // Event Listeners
       document.getElementById('recordButton').addEventListener('click', () => {

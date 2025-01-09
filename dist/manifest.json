@@ -8,6 +8,11 @@
     "theme_color": "#000000",
     "orientation": "any",
     "scope": "/",
+    "permissions": [
+        "background-fetch",
+        "wake-lock",
+        "media-session"
+    ],
     "icons": [
         {
             "src": "images/icons/logo-48.png",

@@ -14,9 +14,91 @@ let reconnectTimeout = null;
 let isManualDisconnect = false;
 let heartbeatInterval = null;
 let lastHeartbeat = null;
+let wakeLock = null;
+let audioFocusGained = true;
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .register('/service-worker.js')
+    .then((reg) => console.log('Service Worker registered', reg))
+    .catch((err) => console.error('Service Worker failed', err));
+}
+
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const CONNECTION_TIMEOUT = 35000; // 35 seconds
 const RECONNECT_DELAY = 2000; // 2 seconds
+
+async function requestWakeLock() {
+  try {
+    // Request both screen and system wake locks if available
+    const locks = [];
+    if ('wakeLock' in navigator) {
+      // Request screen wake lock
+      try {
+        const screenLock = await navigator.wakeLock.request('screen');
+        locks.push(screenLock);
+        console.log('Screen Wake Lock is active');
+      } catch (err) {
+        console.log(`Screen Wake Lock error: ${err.message}`);
+      }
+    }
+
+    wakeLock = locks[0] || null;
+
+    // Add wake lock release listener to reacquire
+    if (wakeLock) {
+      wakeLock.addEventListener('release', () => {
+        console.log('Wake Lock was released');
+        // Attempt to reacquire the wake lock
+        requestWakeLock().catch(console.error);
+      });
+    }
+  } catch (err) {
+    console.log(`Wake Lock error: ${err.message}`);
+  }
+}
+
+async function setupMediaSession() {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Audio Stream',
+      artist: 'PWA Workshop',
+      artwork: [
+        { src: '/images/icons/logo-96.png', sizes: '96x96', type: 'image/png' },
+        { src: '/images/icons/logo-128.png', sizes: '128x128', type: 'image/png' },
+        { src: '/images/icons/logo-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/images/icons/logo-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      disconnectWebSocket();
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      initializeAudio();
+    });
+  }
+}
+
+async function setupBackgroundFetch() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.backgroundFetch.register('audio-fetch', {
+      title: 'Audio Stream',
+      downloadTotal: 0,
+      icons: [
+        {
+          sizes: '192x192',
+          src: '/images/icons/logo-192.png',
+          type: 'image/png',
+        },
+      ],
+    });
+  } catch (err) {
+    console.log(`Background Fetch error: ${err.message}`);
+  }
+}
 
 async function initializeAudio() {
   try {
@@ -24,6 +106,11 @@ async function initializeAudio() {
     if (audioContext.state === 'suspended') {
       await audioContext.resume();
     }
+
+    // Initialize media features
+    await setupMediaSession();
+    await requestWakeLock();
+    await setupBackgroundFetch();
     document.getElementById('initAudio').style.display = 'none';
     document.getElementById('message').textContent = 'Attempting to connect...';
     connectWebSocket();
@@ -81,7 +168,7 @@ function connectWebSocket() {
     }
 
     // Handle both Vite and non-Vite environments
-    const wsUrl = '192.168.0.20'; // Fallback to default
+    const wsUrl = '192.168.0.122'; // Fallback to default
     console.log(`Connecting to WebSocket server: ${wsUrl}`);
     wsConnection = new WebSocket(`ws://${wsUrl}:8080`);
     wsConnection.binaryType = 'arraybuffer';
@@ -169,6 +256,20 @@ function disconnectWebSocket() {
     }
     wsConnection.close();
     wsConnection = null;
+
+    // Release wake lock when disconnecting
+    if (wakeLock) {
+      wakeLock
+        .release()
+        .then(() => console.log('Wake Lock released'))
+        .catch((err) => console.log(`Wake Lock release error: ${err.message}`));
+      wakeLock = null;
+    }
+
+    // Update media session state
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
   }
   document.getElementById('disconnect').style.display = 'none';
   document.getElementById('initAudio').style.display = 'block';
@@ -210,6 +311,27 @@ function showError(message) {
   errorEl.textContent = `Error: ${message}`;
   errorEl.style.display = 'block';
 }
+
+// Handle audio focus and visibility changes
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden && audioContext) {
+    audioFocusGained = false;
+    // Don't suspend audio context when hidden
+    // This allows audio to continue playing in background
+
+    // Ensure wake lock is active
+    if (!wakeLock) {
+      await requestWakeLock();
+    }
+  } else if (!document.hidden && audioContext && !audioFocusGained) {
+    audioFocusGained = true;
+    await audioContext.resume();
+    // Reacquire wake lock if needed
+    if (!wakeLock) {
+      await requestWakeLock();
+    }
+  }
+});
 
 // Add network status event listeners
 window.addEventListener('online', () => {
