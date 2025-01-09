@@ -1,18 +1,3 @@
-import os from 'os';
-
-function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (let iface of Object.values(interfaces)) {
-    for (let addr of iface) {
-      if (addr.family === 'IPv4' && !addr.internal) {
-        return addr.address;
-      }
-    }
-  }
-  return '127.0.0.1'; // Fallback to localhost
-}
-
-const IP = getLocalIP();
 const clients = new Set();
 
 const broadcastAudio = (data, sender) => {
@@ -65,4 +50,4 @@ Bun.serve({
   },
 });
 
-console.log(`WebSocket server started on port http://${IP}:8080`);
+console.log(`WebSocket server started on port http://localhost:8080`);
