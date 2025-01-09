@@ -14,9 +14,10 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 1rem;
-        padding: 1rem;
+        padding-top: 4rem;
+        padding: 4rem 1rem 1rem 1rem;
       }
       h1 {
         text-align: center;
@@ -107,7 +108,7 @@
         text-decoration: underline;
         background: none;
         padding: 0.25rem;
-        margin-top: auto;
+        margin-top: 1rem;
       }
       .link-sender:hover {
         color: #374151;
@@ -117,13 +118,12 @@
   </head>
   <body>
     <div class="container">
-      <h1>TOUR MIC</h1>
-
-      <button id="recordButton" class="record">ON-AIR</button>
+      <h1>MR.LEE</h1>
+      <button id="recordButton" class="record">방송시작</button>
       <div id="error" class="error" style="display: none"></div>
       <div id="permissionStatus" class="permission-status" style="display: none"></div>
       <button id="permissionButton" class="permission" style="display: none">마이크 권한</button>
-      <button id="musicButton" class="music">PLAY MUSIC</button>
+      <button id="musicButton" class="music">샘플음악 재생</button>
       <a href="/index.html" class="link-sender">리시버 페이지로</a>
       <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
     </div>
@@ -414,7 +414,7 @@
             }
             isPlaying = false;
             const musicButton = document.getElementById('musicButton');
-            musicButton.textContent = 'PLAY MUSIC';
+            musicButton.textContent = '샘플음악 재생';
             musicButton.classList.remove('playing');
           }
           startRecording();
@@ -433,7 +433,7 @@
             audioContext = null;
           }
           isPlaying = false;
-          musicButton.textContent = 'PLAY MUSIC';
+          musicButton.textContent = '샘플음악 재생';
           musicButton.classList.remove('playing');
         } else {
           try {
@@ -468,7 +468,7 @@
             // Start playback
             source.start(0);
             isPlaying = true;
-            musicButton.textContent = 'STOP MUSIC';
+            musicButton.textContent = '음악 재생중지';
             musicButton.classList.add('playing');
 
             // Handle when audio finishes
@@ -478,7 +478,7 @@
                 audioContext = null;
               }
               isPlaying = false;
-              musicButton.textContent = 'PLAY MUSIC';
+              musicButton.textContent = '샘플음악 재생';
               musicButton.classList.remove('playing');
             };
           } catch (error) {
