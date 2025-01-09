@@ -86,7 +86,7 @@
       }
 
       .status {
-        font-size: 0.875rem;
+        font-size: 1.275rem;
         color: #4b5563;
       }
 
@@ -119,6 +119,7 @@
   <body>
     <div class="container">
       <h1>MR.LEE</h1>
+      <div id="connectionCount" class="status">연결 완료: 0</div>
       <button id="recordButton" class="record">방송시작</button>
       <div id="error" class="error" style="display: none"></div>
       <div id="permissionStatus" class="permission-status" style="display: none"></div>
@@ -209,6 +210,19 @@
           if (isRecording) {
             // Re-initialize audio context if connection was lost while recording
             restartAudioContext();
+          }
+        };
+
+        ws.onmessage = (event) => {
+          if (typeof event.data === 'string') {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'count') {
+                document.getElementById('connectionCount').textContent = `연결 완료: ${data.count}`;
+              }
+            } catch (e) {
+              console.error('Error parsing WebSocket message:', e);
+            }
           }
         };
 

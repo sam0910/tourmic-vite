@@ -8,6 +8,16 @@ const broadcastAudio = (data, sender) => {
   }
 };
 
+// Broadcast client count to all connected clients
+const broadcastCount = () => {
+  const countMessage = JSON.stringify({ type: 'count', count: clients.size });
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(countMessage);
+    }
+  }
+};
+
 Bun.serve({
   port: 8080,
   fetch(req, server) {
@@ -22,6 +32,7 @@ Bun.serve({
       clients.add(ws);
       console.log('Client connected');
       console.log(`Total connected clients: ${clients.size}`);
+      broadcastCount();
 
       // Setup ping interval for this client
       ws.pinger = setInterval(() => {
@@ -34,7 +45,14 @@ Bun.serve({
       if (data instanceof ArrayBuffer) {
         broadcastAudio(data, ws);
       } else {
-        console.log('Received non-binary data, skipping');
+        try {
+          const jsonData = JSON.parse(data);
+          if (jsonData.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong' }));
+          }
+        } catch (e) {
+          console.log('Received non-binary data, skipping');
+        }
       }
     },
     close(ws) {
@@ -42,11 +60,13 @@ Bun.serve({
       clearInterval(ws.pinger);
       console.log('Client disconnected');
       console.log(`Remaining clients: ${clients.size}`);
+      broadcastCount();
     },
     error(ws, error) {
       console.error('WebSocket error:', error);
       clients.delete(ws);
       clearInterval(ws.pinger);
+      broadcastCount();
     },
   },
 });
