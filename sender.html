@@ -56,6 +56,22 @@
         background-color: #ca8a04;
       }
 
+      button.music {
+        background-color: #10b981;
+      }
+
+      button.music:hover {
+        background-color: #059669;
+      }
+
+      button.music.playing {
+        background-color: #6366f1;
+      }
+
+      button.music.playing:hover {
+        background-color: #4f46e5;
+      }
+
       #recordButton {
         padding: 2rem 4rem; /* Even larger than other buttons */
         font-size: 1.5rem; /* Larger font */
@@ -102,10 +118,12 @@
   <body>
     <div class="container">
       <h1>TOUR MIC</h1>
+
       <button id="recordButton" class="record">ON-AIR</button>
       <div id="error" class="error" style="display: none"></div>
       <div id="permissionStatus" class="permission-status" style="display: none"></div>
       <button id="permissionButton" class="permission" style="display: none">마이크 권한</button>
+      <button id="musicButton" class="music">PLAY MUSIC</button>
       <a href="/index.html" class="link-sender">리시버 페이지로</a>
       <div id="recordingStatus" class="status" style="display: none">Recording and streaming audio...</div>
     </div>
@@ -117,6 +135,8 @@
       let permissionStatus = 'prompt';
       let wakeLock = null;
       let backgroundFetchId = null;
+      let audioPlayer = null;
+      let isPlaying = false;
 
       // Register service worker for offline support and background features
       if ('serviceWorker' in navigator) {
@@ -386,11 +406,87 @@
         if (isRecording) {
           stopRecording();
         } else {
+          // Stop music if it's playing before starting recording
+          if (isPlaying) {
+            if (audioContext) {
+              audioContext.close();
+              audioContext = null;
+            }
+            isPlaying = false;
+            const musicButton = document.getElementById('musicButton');
+            musicButton.textContent = 'PLAY MUSIC';
+            musicButton.classList.remove('playing');
+          }
           startRecording();
         }
       });
 
       document.getElementById('permissionButton').addEventListener('click', requestPermission);
+
+      // Music Player Controls with WebSocket Streaming
+      document.getElementById('musicButton').addEventListener('click', async () => {
+        const musicButton = document.getElementById('musicButton');
+
+        if (isPlaying) {
+          if (audioContext) {
+            await audioContext.close();
+            audioContext = null;
+          }
+          isPlaying = false;
+          musicButton.textContent = 'PLAY MUSIC';
+          musicButton.classList.remove('playing');
+        } else {
+          try {
+            // Create new audio context
+            audioContext = new AudioContext({ sampleRate: 22050 });
+
+            // Fetch the audio file
+            const response = await fetch('/background.mp3');
+            const arrayBuffer = await response.arrayBuffer();
+
+            // Decode the audio data
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            // Create source and processor
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+
+            const processor = audioContext.createScriptProcessor(2048, 1, 1);
+
+            // Connect nodes
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+
+            // Process and stream audio data
+            processor.onaudioprocess = (e) => {
+              if (wsConnection?.readyState === WebSocket.OPEN) {
+                const inputData = e.inputBuffer.getChannelData(0);
+                wsConnection.send(inputData.buffer);
+              }
+            };
+
+            // Start playback
+            source.start(0);
+            isPlaying = true;
+            musicButton.textContent = 'STOP MUSIC';
+            musicButton.classList.add('playing');
+
+            // Handle when audio finishes
+            source.onended = () => {
+              if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+              }
+              isPlaying = false;
+              musicButton.textContent = 'PLAY MUSIC';
+              musicButton.classList.remove('playing');
+            };
+          } catch (error) {
+            console.error('Error streaming audio:', error);
+            showError('Failed to stream audio');
+          }
+        }
+      });
     </script>
   </body>
 </html>
